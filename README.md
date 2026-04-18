@@ -235,3 +235,63 @@ Donde:
 - [ ] Endpoint nuevo implementado
 - [ ] Tests del endpoint nuevo en verde
 - [ ] Pruebas pasando (`mvn test`)
+
+---
+
+## Incremento progresivo (semana 13 al 17 de abril)
+
+Este proyecto incorpora persistencia con Spring Data JPA como siguiente etapa del curso.
+
+### Dependencias agregadas
+
+- `spring-boot-starter-data-jpa` — ORM con Hibernate.
+- `postgresql` (runtime) — driver JDBC para PostgreSQL.
+
+### Entidades y relación
+
+Se definieron dos entidades con una relación de negocio coherente:
+
+- `Categoria` — una categoría agrupa muchos productos (`@OneToMany`).
+- `Producto` — cada producto pertenece a una categoría (`@ManyToOne`, `FetchType.LAZY`).
+
+Ambas entidades incluyen auditoría automática (`creadoEn`) mediante `@PrePersist`.
+
+### Sincronización del esquema: `ddl-auto`
+
+**Valor usado en desarrollo:** `update`
+
+```properties
+spring.jpa.hibernate.ddl-auto=update
+```
+
+Se eligió `update` porque permite que Hibernate aplique cambios incrementales al esquema
+(agregar columnas, crear tablas nuevas) cada vez que arranca la aplicación, sin borrar
+datos existentes. Esto es cómodo durante el desarrollo porque no requiere scripts manuales
+para cada cambio en las entidades.
+
+**Alternativa para producción:** usar `validate` junto con una herramienta de migraciones
+externa como Flyway o Liquibase. Con `validate`, Hibernate solo compara las entidades
+contra el esquema real y falla si no coinciden, pero nunca modifica la base de datos.
+Las migraciones externas proveen control de versiones sobre el esquema, historial auditable
+y rollback controlado — imprescindible en entornos productivos.
+
+### Configuración de conexión (sin secretos en el código)
+
+Las credenciales se leen desde variables de entorno con valor por defecto solo para desarrollo local:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/workshop_jpa
+spring.datasource.username=${DB_USER:postgres}
+spring.datasource.password=${DB_PASSWORD:postgres}
+```
+
+El archivo `application.properties` está en `.gitignore` para no commitear secretos al repositorio.
+
+### APIs expuestas
+
+| Recurso | Ruta base | Operaciones |
+|---------|-----------|-------------|
+| Categorias | `/api/v1/categorias` | GET list, GET/{id}, POST (201), PUT/{id}, DELETE/{id} (204) |
+| Productos | `/api/v1/productos` | GET list, GET/{id}, POST (201), PUT/{id}, DELETE/{id} (204) |
+
+Documentación interactiva disponible en `http://localhost:8081/swagger-ui/index.html`.

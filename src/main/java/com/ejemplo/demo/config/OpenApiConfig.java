@@ -15,7 +15,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Spring Boot API Demo")
                         .version("1.0.0")
-                        .description("API de ejemplo para saludos y simulacion de prestamos")
+                        .description("API de ejemplo para saludos, simulacion de prestamos y CRUD de categorias y productos con JPA")
                         .contact(new Contact()
                                 .name("Eduardo Visoni")
                                 .email("eduardo@ejemplo.com")));

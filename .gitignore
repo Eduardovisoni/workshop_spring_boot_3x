@@ -33,3 +33,6 @@ replay_pid*
 
 # Archivos artefactos
 \[Help
+
+# Credenciales - no subir al repositorio
+src/main/resources/application.properties

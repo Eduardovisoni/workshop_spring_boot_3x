@@ -20,6 +20,13 @@ public class PrestamoService {
         BigDecimal tasaAnual = request.tasaAnual();
         int meses = request.meses();
 
+        if (tasaAnual.compareTo(BigDecimal.valueOf(100)) > 0) {
+            throw new IllegalArgumentException("La tasaAnual no puede ser mayor al 100%");
+        }
+        if (monto.compareTo(BigDecimal.valueOf(5_000_000)) > 0) {
+            throw new IllegalArgumentException("El monto excede el maximo permitido de Q5,000,000");
+        }
+
         BigDecimal tasaMensual = tasaAnual.divide(DOCE, 10, RoundingMode.HALF_UP)
                 .divide(CIEN, 10, RoundingMode.HALF_UP);
 

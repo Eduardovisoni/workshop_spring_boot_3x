@@ -70,6 +70,16 @@ class SaludoControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.codigo").value("VALIDATION_ERROR"));
     }
-    
-    
+
+    @Test
+    @DisplayName("Debe retornar 400 cuando el nombre contiene numeros")
+    void debeRetornar400CuandoNombreContieneNumeros() throws Exception {
+        when(saludoService.crearSaludo("Ana123"))
+                .thenThrow(new IllegalArgumentException("El nombre no puede contener números"));
+
+        mockMvc.perform(get("/api/v1/saludos")
+                        .param("nombre", "Ana123"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.codigo").value("BUSINESS_RULE_ERROR"));
+    }
 }
