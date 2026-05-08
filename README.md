@@ -221,6 +221,87 @@ Donde:
 - `r` = tasa mensual (`tasaAnual / 12 / 100`)
 - `n` = numero de meses
 
+### Paso 9 - Contract-first: OpenAPI en YAML + OpenAPI Generator *(desafio)*
+
+Objetivo: adoptar enfoque **contract-first**: definir la API en un archivo OpenAPI (YAML), generar desde Maven las **interfaces** Spring que describen cada endpoint, y hacer que sus `@RestController` **implementen** esas interfaces. **No deben cambiar** las rutas ni la forma del JSON que ya probamos en pasos anteriores (los `curl` y `mvn test` deben seguir comportandose igual).
+
+#### 9.1 Inventario: todo debe estar en el YAML
+
+Cada operacion existente en el codigo tiene que aparecer en el contrato. Referencia de **tags** (sirven para agrupar; con `useTags` el generador suele crear **una interfaz Java por tag**), metodo, ruta y notas:
+
+| Tag sugerido | Metodo HTTP | Ruta actual | Notas |
+| :--- | :--- | :--- | :--- |
+| `workshop` | GET | `/api/v1` | Objeto con `estado` y `mensaje`. |
+| `workshop` | GET | `/api/v1/saludos` | Query `nombre`, valor por defecto `Mundo`. |
+| `workshop` | POST | `/api/v1/saludos` | Cuerpo/respuesta alineados con `SaludoRequest` / `SaludoResponse`. |
+| `simulaciones` | POST | `/api/v1/simulaciones/prestamo` | `PrestamoRequest` / `PrestamoResponse`. |
+| `demo-estado` | POST | `/api/v1/demo/estado/singleton/{valor}` | Respuesta `{ tipo, valorActual }`. |
+| `demo-estado` | GET | `/api/v1/demo/estado/singleton` | Idem. |
+| `demo-estado` | POST | `/api/v1/demo/estado/singleton/reset` | Idem. |
+| `demo-estado` | POST | `/api/v1/demo/estado/manual/{valor}` | Idem. |
+| `demo-estado` | GET | `/api/v1/demo/estado/manual` | Idem. |
+
+En cada operacion definan un **`operationId`** claro (sera el nombre del metodo en la interfaz generada). Ejemplos: `getWorkshopHealth`, `saludarPorGet`, `saludarPorPost`, `simularPrestamo`; para la demo de estado, nombres explicitos como `actualizarSingleton`, `obtenerSingleton`, `reiniciarSingleton`, `actualizarManual`, `obtenerManual`.
+
+Ubicacion recomendada del archivo: `src/main/resources/openapi/openapi.yaml`.
+
+#### 9.2 Que deben hacer (orden sugerido)
+
+1. **Escribir el contrato**  
+   Completar `openapi.yaml` con `paths`, `components.schemas`, tags y `operationId` de forma que refleje **exactamente** las rutas y los cuerpos/respuestas actuales (tipos, query params, path params).
+
+2. **Configurar Maven**  
+   - Agregar el plugin `openapi-generator-maven-plugin` (generator `spring`) ejecutado en fase `generate-sources`.  
+   - Opciones utiles: `interfaceOnly`, `useTags`, `useSpringBoot3`, `useJakartaEe`, validacion de beans si aplica.  
+   - Para **no** generar modelos duplicados encima de los records/DTO que ya tienen en `com.ejemplo.demo.api.dto`, investiguen `importMappings` y `generateModels=false` (buena practica cuando el modelo Java ya existe).  
+   - Registrar la carpeta de fuentes generadas (por ejemplo con `build-helper-maven-plugin` y `add-source`) para que compile en IDE y CI.
+
+3. **Refactorizar controladores**  
+   Tras `mvn generate-sources`, localicen las interfaces generadas (por ejemplo `WorkshopApi`, `SimulacionesApi`, y una tercera para `demo-estado`). Hagan que cada `@RestController` **implemente** la interfaz que le corresponda, muevan la logica a los metodos `@Override` y eliminen anotaciones duplicadas si Spring ya las hereda de la interfaz (comprueben con una prueba). **Mantengan** inyeccion de servicios y reglas de negocio igual que antes.
+
+4. **Congelar el contrato publico**  
+   Si `mvn test` falla, lo mas probable es que el YAML no coincida con lo que esperan los tests (nombres de campos JSON, rutas, metodos). Ajusten el contrato o el mapeo hasta que todo pase; no cambien los tests salvo que el docente lo autorice.
+
+5. **Documentacion y buenas practicas (lectura)**  
+   Revisen la guia del generator `spring` en [OpenAPI Generator](https://openapi-generator.tech/docs/generation/) y, si quieren contexto de diseno, [Contract-first con OpenAPI](https://swagger.io/blog/api-design/openapi-driven-contract-first-development/). Idea clave: el YAML es la fuente de verdad; los cambios de API conscientes empiezan ahi.
+
+Comando util durante el trabajo:
+
+```bash
+mvn generate-sources
+```
+
+Verificar al final:
+
+```bash
+mvn test
+```
+
+---
+
+## Demo adicional: Singleton vs no singleton
+
+Esta comparacion ya esta implementada en el proyecto para demostracion en clase.
+
+### Caso singleton (con `@Service`)
+
+```bash
+curl -X POST http://localhost:8080/api/v1/demo/estado/singleton/reset
+curl -X POST http://localhost:8080/api/v1/demo/estado/singleton/25
+curl http://localhost:8080/api/v1/demo/estado/singleton
+```
+
+En la segunda llamada se mantiene el valor (`25`), porque Spring reutiliza la misma instancia.
+
+### Caso manual (sin `@Service`, usando `new`)
+
+```bash
+curl -X POST http://localhost:8080/api/v1/demo/estado/manual/25
+curl http://localhost:8080/api/v1/demo/estado/manual
+```
+
+La consulta devuelve `0`, porque cada endpoint crea una instancia nueva.
+
 ---
 
 ## Checklist final
@@ -235,63 +316,21 @@ Donde:
 - [ ] Endpoint nuevo implementado
 - [ ] Tests del endpoint nuevo en verde
 - [ ] Pruebas pasando (`mvn test`)
+- [ ] (Paso 9) YAML contract-first completo; interfaces generadas desde `pom.xml`
+- [ ] (Paso 9) Controladores implementan interfaces; rutas y JSON sin regresiones
 
 ---
 
 ## Incremento progresivo (semana 13 al 17 de abril)
 
-Este proyecto incorpora persistencia con Spring Data JPA como siguiente etapa del curso.
+Como siguiente etapa del curso, este proyecto incorpora un incremento progresivo enfocado en persistencia con JPA.
 
-### Dependencias agregadas
+- Periodo de trabajo: **del 13 al 17 de abril**.
+- Guia oficial del incremento: [`TareaJpa.md`](TareaJpa.md).
+- Alcance general:
+  - Integrar Spring Data JPA.
+  - Configurar base de datos (PostgreSQL en la tarea principal).
+  - Modelar 2 entidades relacionadas.
+  - Exponer 2 APIs con CRUD completo y buenas practicas.
 
-- `spring-boot-starter-data-jpa` — ORM con Hibernate.
-- `postgresql` (runtime) — driver JDBC para PostgreSQL.
-
-### Entidades y relación
-
-Se definieron dos entidades con una relación de negocio coherente:
-
-- `Categoria` — una categoría agrupa muchos productos (`@OneToMany`).
-- `Producto` — cada producto pertenece a una categoría (`@ManyToOne`, `FetchType.LAZY`).
-
-Ambas entidades incluyen auditoría automática (`creadoEn`) mediante `@PrePersist`.
-
-### Sincronización del esquema: `ddl-auto`
-
-**Valor usado en desarrollo:** `update`
-
-```properties
-spring.jpa.hibernate.ddl-auto=update
-```
-
-Se eligió `update` porque permite que Hibernate aplique cambios incrementales al esquema
-(agregar columnas, crear tablas nuevas) cada vez que arranca la aplicación, sin borrar
-datos existentes. Esto es cómodo durante el desarrollo porque no requiere scripts manuales
-para cada cambio en las entidades.
-
-**Alternativa para producción:** usar `validate` junto con una herramienta de migraciones
-externa como Flyway o Liquibase. Con `validate`, Hibernate solo compara las entidades
-contra el esquema real y falla si no coinciden, pero nunca modifica la base de datos.
-Las migraciones externas proveen control de versiones sobre el esquema, historial auditable
-y rollback controlado — imprescindible en entornos productivos.
-
-### Configuración de conexión (sin secretos en el código)
-
-Las credenciales se leen desde variables de entorno con valor por defecto solo para desarrollo local:
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/workshop_jpa
-spring.datasource.username=${DB_USER:postgres}
-spring.datasource.password=${DB_PASSWORD:postgres}
-```
-
-El archivo `application.properties` está en `.gitignore` para no commitear secretos al repositorio.
-
-### APIs expuestas
-
-| Recurso | Ruta base | Operaciones |
-|---------|-----------|-------------|
-| Categorias | `/api/v1/categorias` | GET list, GET/{id}, POST (201), PUT/{id}, DELETE/{id} (204) |
-| Productos | `/api/v1/productos` | GET list, GET/{id}, POST (201), PUT/{id}, DELETE/{id} (204) |
-
-Documentación interactiva disponible en `http://localhost:8081/swagger-ui/index.html`.
+Recomendacion para clase: pueden realizar una demo inicial con H2 para reducir friccion de entorno, y luego completar la entrega final siguiendo los lineamientos de `TareaJpa.md`.

@@ -1,0 +1,320 @@
+openapi: 3.0.3
+info:
+  title: Spring Boot API Demo
+  version: 1.0.0
+  description: |
+    Contrato OpenAPI (contract-first) para el workshop de Spring Boot 3.x.
+    Define los endpoints de saludo, simulacion de prestamos y la demo
+    educativa de Singleton (@Service) vs instancias manuales (new).
+    Las rutas y la forma del JSON deben coincidir con la implementacion previa.
+  contact:
+    name: Eduardo Visoni
+    email: eduardo@ejemplo.com
+
+servers:
+  - url: http://localhost:8081
+    description: Servidor local de desarrollo
+
+tags:
+  - name: workshop
+    description: Endpoints basicos del workshop (health y saludos)
+  - name: simulaciones
+    description: Simulaciones de calculo financiero
+  - name: demo-estado
+    description: Demo educativa de Singleton vs instancias manuales
+
+paths:
+
+  /api/v1:
+    get:
+      tags: [workshop]
+      operationId: getWorkshopHealth
+      summary: Health check del workshop
+      description: Verifica que el servidor este corriendo.
+      responses:
+        '200':
+          description: El servidor esta activo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/saludos:
+    get:
+      tags: [workshop]
+      operationId: saludarPorGet
+      summary: Saludo por GET
+      description: Recibe un nombre por query param y devuelve un saludo normalizado.
+      parameters:
+        - name: nombre
+          in: query
+          required: false
+          description: Nombre de la persona a saludar
+          schema:
+            type: string
+            default: Mundo
+            example: Ana
+      responses:
+        '200':
+          description: Saludo generado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaludoResponse'
+        '400':
+          description: Error de negocio (por ejemplo, nombre con numeros)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [workshop]
+      operationId: saludarPorPost
+      summary: Saludo por POST con validacion
+      description: Recibe el nombre en el body como JSON y aplica validacion con jakarta.validation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaludoRequest'
+      responses:
+        '200':
+          description: Saludo generado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaludoResponse'
+        '400':
+          description: Validacion fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/simulaciones/prestamo:
+    post:
+      tags: [simulaciones]
+      operationId: simularPrestamo
+      summary: Simular prestamo con cuota fija
+      description: |
+        Calcula la cuota mensual, el interes total y el total a pagar dado un monto,
+        tasa anual y plazo en meses, usando la formula de amortizacion de cuota fija.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrestamoRequest'
+      responses:
+        '200':
+          description: Simulacion exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrestamoResponse'
+        '400':
+          description: Datos invalidos (monto, tasa o meses fuera de rango)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/demo/estado/singleton/{valor}:
+    post:
+      tags: [demo-estado]
+      operationId: actualizarSingleton
+      summary: Actualizar valor singleton
+      description: Spring reutiliza la misma instancia, el valor persiste entre llamadas.
+      parameters:
+        - name: valor
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            example: 25
+      responses:
+        '200':
+          description: Valor actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoResponse'
+
+  /api/v1/demo/estado/singleton:
+    get:
+      tags: [demo-estado]
+      operationId: obtenerSingleton
+      summary: Leer valor singleton
+      responses:
+        '200':
+          description: Valor actual del singleton
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoResponse'
+
+  /api/v1/demo/estado/singleton/reset:
+    post:
+      tags: [demo-estado]
+      operationId: reiniciarSingleton
+      summary: Reiniciar valor singleton a 0
+      responses:
+        '200':
+          description: Singleton reiniciado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoResponse'
+
+  /api/v1/demo/estado/manual/{valor}:
+    post:
+      tags: [demo-estado]
+      operationId: actualizarManual
+      summary: Actualizar valor en una instancia manual (new)
+      description: Cada llamada crea un objeto nuevo con 'new', el valor nunca persiste.
+      parameters:
+        - name: valor
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+            example: 25
+      responses:
+        '200':
+          description: Valor asignado a la instancia recien creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoResponse'
+
+  /api/v1/demo/estado/manual:
+    get:
+      tags: [demo-estado]
+      operationId: obtenerManual
+      summary: Leer valor manual
+      description: Siempre devuelve 0 porque crea una instancia nueva en cada request.
+      responses:
+        '200':
+          description: Valor actual de la instancia manual (siempre 0)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoResponse'
+
+components:
+  schemas:
+
+    HealthResponse:
+      type: object
+      description: Respuesta del health check del workshop
+      properties:
+        estado:
+          type: string
+          example: ok
+        mensaje:
+          type: string
+          example: Workshop Spring Boot activo
+      required: [estado, mensaje]
+
+    SaludoRequest:
+      type: object
+      description: Datos que se envian para pedir un saludo
+      properties:
+        nombre:
+          type: string
+          description: Nombre de la persona a saludar
+          minLength: 1
+          maxLength: 50
+          example: Ana
+      required: [nombre]
+
+    SaludoResponse:
+      type: object
+      description: Respuesta que devuelve el servidor con el saludo generado
+      properties:
+        mensaje:
+          type: string
+          example: Hola, Estudiante Ana. Bienvenido a Spring Boot 3!
+        timestamp:
+          type: string
+          format: date-time
+          description: Momento exacto en que se genero el saludo (UTC)
+      required: [mensaje, timestamp]
+
+    PrestamoRequest:
+      type: object
+      description: Datos necesarios para simular un prestamo
+      properties:
+        monto:
+          type: number
+          description: Monto del prestamo en quetzales
+          minimum: 0.01
+          example: 10000.00
+        tasaAnual:
+          type: number
+          description: Tasa de interes anual en porcentaje (12 = 12% anual)
+          minimum: 0.01
+          example: 12.0
+        meses:
+          type: integer
+          format: int32
+          description: Plazo del prestamo en meses
+          minimum: 1
+          maximum: 360
+          example: 12
+      required: [monto, tasaAnual, meses]
+
+    PrestamoResponse:
+      type: object
+      description: Resultado de la simulacion del prestamo
+      properties:
+        cuotaMensual:
+          type: number
+          description: Cuota fija que se paga cada mes
+          example: 888.49
+        interesTotal:
+          type: number
+          description: Total de intereses pagados durante todo el plazo
+          example: 661.88
+        totalPagar:
+          type: number
+          description: Suma total a pagar (monto original + intereses)
+          example: 10661.88
+      required: [cuotaMensual, interesTotal, totalPagar]
+
+    EstadoResponse:
+      type: object
+      description: Estado actual de la demo (singleton o manual)
+      properties:
+        tipo:
+          type: string
+          description: Indica si el estado proviene de un singleton o de una instancia manual
+          example: singleton
+        valorActual:
+          type: integer
+          format: int32
+          description: Valor actual almacenado
+          example: 25
+      required: [tipo, valorActual]
+
+    ErrorResponse:
+      type: object
+      description: Estructura comun para errores devueltos por la API
+      properties:
+        codigo:
+          type: string
+          example: VALIDATION_ERROR
+        mensaje:
+          type: string
+          example: Uno o mas campos son invalidos
+        timestamp:
+          type: string
+          format: date-time
+        detalles:
+          type: object
+          additionalProperties:
+            type: string
+      required: [codigo, mensaje, timestamp]

@@ -61,6 +61,71 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.8.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-spring-interfaces</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/openapi/openapi.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <output>${project.build.directory}/generated-sources/openapi</output>
+                            <apiPackage>com.ejemplo.demo.api.generated</apiPackage>
+                            <modelPackage>com.ejemplo.demo.api.dto</modelPackage>
+                            <generateApis>true</generateApis>
+                            <generateModels>false</generateModels>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+                            <configOptions>
+                                <interfaceOnly>true</interfaceOnly>
+                                <useTags>true</useTags>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <skipDefaultInterface>true</skipDefaultInterface>
+                                <useResponseEntity>true</useResponseEntity>
+                                <openApiNullable>false</openApiNullable>
+                                <documentationProvider>none</documentationProvider>
+                                <annotationLibrary>none</annotationLibrary>
+                            </configOptions>
+                            <importMappings>
+                                <importMapping>HealthResponse=com.ejemplo.demo.api.dto.HealthResponse</importMapping>
+                                <importMapping>SaludoRequest=com.ejemplo.demo.api.dto.SaludoRequest</importMapping>
+                                <importMapping>SaludoResponse=com.ejemplo.demo.api.dto.SaludoResponse</importMapping>
+                                <importMapping>PrestamoRequest=com.ejemplo.demo.api.dto.PrestamoRequest</importMapping>
+                                <importMapping>PrestamoResponse=com.ejemplo.demo.api.dto.PrestamoResponse</importMapping>
+                                <importMapping>EstadoResponse=com.ejemplo.demo.api.dto.EstadoResponse</importMapping>
+                                <importMapping>ErrorResponse=com.ejemplo.demo.api.dto.ErrorResponse</importMapping>
+                            </importMappings>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-generated-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/openapi/src/main/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
